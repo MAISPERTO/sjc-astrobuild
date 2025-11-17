@@ -1,12 +1,15 @@
+// src/pages/[bairro_slug]/index.astro
+
 ---
-import Layout from '../../layouts/Layout.astro'; 
+import Layout from '../../layouts/Layout.astro';
 import { 
+    // Garanta que todas estas funções venham de 'api'
     toDirectusSlug, 
     formatSlug, 
     fetchBairroData, 
-    fetchAllCategories,
-    groupCategories,
-} from '../../lib/directus'; // Importando tudo do novo arquivo
+    // ... outras funções que você usa
+} from '../../lib/api'; // <-- CORREÇÃO: Deve ser 'api'
+// ...
 
 export const prerender = false; 
 
