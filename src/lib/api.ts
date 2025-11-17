@@ -104,8 +104,10 @@ export async function fetchAllCategories(): Promise<Category[]> {
 export function groupCategories(allCategories: Category[]) {
     const groupedCategories: Record<string, any> = {};
     
-    // Filtros e lógica de agrupamento aqui...
-    const nv1RootCategorias = allCategories.filter(c => Number(c.nivel_nicho) === 1 && NV1_IDS.includes(Number(c.id)));
+    // 1. Inicializar os Nv1s que são raízes (usando NV1_IDS como filtro)
+    const nv1RootCategorias = allCategories.filter(
+        c => Number(c.nivel_nicho) === 1 && NV1_IDS.includes(Number(c.id))
+    );
 
     nv1RootCategorias.forEach(cat => {
         const slug = cat.full_slug_nicho;
@@ -115,7 +117,26 @@ export function groupCategories(allCategories: Category[]) {
             nv3: []
         };
     });
-    // O restante da sua lógica de agrupamento deve ser incluída aqui para Nv2 e Nv3.
 
+    // 2. Classificar o restante das categorias (Nv2 e Nv3)
+    const subCategorias = allCategories.filter(c => Number(c.nivel_nicho) > 1);
+
+    subCategorias.forEach(cat => {
+        const fullSlug = cat.full_slug_nicho;
+        
+        // O slug da raiz Nv1 é sempre a primeira parte do full_slug_nicho
+        const nv1RootSlug = fullSlug.split('/')[0];
+        
+        // Se a categoria Nv1 existe no nosso objeto de agrupamento
+        if (groupedCategories[nv1RootSlug]) {
+            if (Number(cat.nivel_nicho) === 2) {
+                groupedCategories[nv1RootSlug].nv2.push(cat);
+            } else if (Number(cat.nivel_nicho) === 3) {
+                groupedCategories[nv1RootSlug].nv3.push(cat);
+            }
+        }
+    });
+
+    // 3. Retorna apenas os grupos que contêm as categorias Nv1 de interesse
     return Object.values(groupedCategories);
 }
