@@ -1,14 +1,20 @@
 ---
-// src/pages/index.astro (VERSÃO FINAL COM CORREÇÃO DE POSIÇÃO DOS BAIRROS)
+// src/pages/index.astro (VERSÃO FINAL USANDO .ENV E JARDIM AQUARIUS)
 import Layout from '../layouts/Layout.astro'; 
 
 export const prerender = false; 
 
-// Definições globais (CORRIGIDO)
+// --- NOVAS DEFINIÇÕES USANDO VARIÁVEIS DE AMBIENTE ---
+const DIRECTUS_BASE_URL = import.meta.env.PUBLIC_DIRECTUS_URL;
+const CITY_SLUG = import.meta.env.PUBLIC_CITY_SLUG;
+const CITY_NAME = import.meta.env.PUBLIC_CITY_NAME;
+// O Astro injeta o valor no SITE para sitemap, mas não precisamos dele aqui no front.
+
+// Define a URL base da API
+const DIRECTUS_API_URL = `${DIRECTUS_BASE_URL}items/`; 
+
+// Definição do ID da cidade SJC (mantida para filtro de bairros)
 const ID_SJC = 3; 
-const DIRECTUS_API_URL = 'https://directus.maisperto.com.br/items/'; 
-const CITY_NAME = "São José dos Campos"; 
-const SITE_NAME = "SJC.MP"; 
 
 // FUNÇÕES ESSENCIAIS
 const toUrlSlug = (slug) => slug.replace(/_/g, '-');
@@ -62,13 +68,13 @@ const nv3Categorias = todasCategorias.filter(c => countSlashes(c.full_slug_nicho
 const gridStyle = 'list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem;';
 const cardStyle = 'display: block; background:#fff; border-radius:0.75rem; border:1px solid #ddd; padding:0.75rem 1rem; height: 100%; transition: background 0.2s; cursor: pointer; text-decoration: none;';
 const sectionDividerStyle = 'border: 0; border-top: 1px solid #eee; margin: 3rem 0;';
-// Estilo de tag/card para bairros (RESTAURADO)
 const bairroTagStyle = 'display: inline-block; background: #fff; border: 1px solid #ddd; border-radius: 0.5rem; padding: 0.5rem 0.75rem; margin: 0 0.5rem 0.5rem 0; text-decoration: none; color: #1f2937; transition: background 0.2s;';
 
 
-const title = `Guia de Empresas e Serviços em ${CITY_NAME} | ${SITE_NAME}`;
+const title = `Guia de Empresas e Serviços em ${CITY_NAME} | ${import.meta.env.SITE || 'MAISPERTO'}`;
 const metaDescription = `Encontre as melhores empresas, comércios e serviços de ${CITY_NAME}. Guias por bairro e categoria.`;
 ---
+
 
 <Layout title={title} description={metaDescription}>
     <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
