@@ -1,0 +1,71 @@
+// src/pages/index.astro
+---
+import Layout from '../layouts/Layout.astro'; 
+// NÃO precisa mais importar nada do Directus.ts!
+
+const CITY_NAME = "São José dos Campos";
+const SITE_NAME = "SJC.MP";
+
+// Lista de Categorias Nv1 (Hardcoded para Velocidade Máxima)
+const CATEGORIAS_NV1 = [
+    { nome: "Alimentos e Bebidas (Gastronomia)", slug: "alimentos-e-bebidas" },
+    { nome: "Comércio (Varejo e Atacado)", slug: "comercio-varejo-e-atacado" },
+    { nome: "Serviços para Casa e Construção", slug: "servicos-casa-e-construcao" },
+    { nome: "Educação e Cultura", slug: "educacao-e-cultura" },
+    { nome: "Veículos e Transporte", slug: "veiculos-e-transporte" },
+    { nome: "Saúde e Bem-Estar", slug: "saude-e-bem-estar" },
+    { nome: "Serviços Profissionais", slug: "servicos-profissionais" },
+    { nome: "Turismo, Hospedagem e Eventos", slug: "turismo-hospedagem-e-eventos" },
+];
+
+const title = `Home | Encontre o que está MAISPERTO em ${CITY_NAME} | ${SITE_NAME}`;
+
+// Estilos de Tags Visuais
+const tagStyle = "text-decoration: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; background: #059669; color: #fff; padding: 1rem; min-height: 100px; font-size: 1.1rem; font-weight: 700; cursor: pointer;";
+const gridStyle = "display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;";
+---
+
+<Layout title={title}>
+    
+    <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
+
+        <header style="margin-bottom: 3rem; text-align: center;">
+            <h1 style="margin: 0 0 0.5rem 0; font-size: 2.5rem; font-weight: 800; color: #1f2937;">
+                Bem-vindo ao MAISPERTO {CITY_NAME}
+            </h1>
+            <p style="margin: 0; font-size: 1.2rem; color: #555;">
+                O guia mais rápido para encontrar serviços e negócios perto de você.
+            </p>
+        </header>
+
+        <section style="margin-bottom: 3rem;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1f2937; margin-bottom: 1.5rem; text-align: center;">
+                Encontre o que você precisa AGORA:
+            </h2>
+            
+            <div style={gridStyle}>
+                {CATEGORIAS_NV1.map((categoria) => (
+                    // Link temporário para a Home ou Busca, até que a rota de busca esteja pronta.
+                    // O valor 'categoria.slug' é o filtro inicial.
+                    <a 
+                        href={`/busca?categoria=${categoria.slug}`} 
+                        style={tagStyle}
+                        title={`Buscar em todos os bairros por ${categoria.nome}`}
+                    >
+                        {categoria.nome}
+                    </a>
+                ))}
+            </div>
+            
+            <p style="margin-top: 2rem; text-align: center; font-size: 1rem; color: #777;">
+                *Para ver a lista completa por bairro, navegue pelo menu ou use a busca.
+            </p>
+        </section>
+
+        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: #1f2937;">Outros Conteúdos da Cidade</h2>
+            <p style="color: #555;">(Seções de conteúdo de SJC, como Bairros em Destaque, serão adicionadas aqui.)</p>
+        </div>
+
+    </div>
+</Layout>

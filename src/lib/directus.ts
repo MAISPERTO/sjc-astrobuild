@@ -1,8 +1,8 @@
 // --- Configurações da API ---
 const DIRECTUS_API_URL = 'https://directus.maisperto.com.br/items/'; 
 export const ID_SJC = 3; 
-// Lista GATILHO dos IDs das 8 categorias Nv1 (Baseado no seu CSV)
-export const NV1_IDS = [1, 23, 45, 86, 221, 249, 298, 321];
+// Lista GATILHO dos IDs das 8 categorias Nv1 (AGORA CORRIGIDA com base no CSV)
+export const NV1_IDS = [1, 47, 81, 124, 156, 186, 221, 249]; // <-- A LISTA CORRETA
 
 // --- Tipagem (Opcional, mas boa prática) ---
 interface Category {
@@ -38,11 +38,11 @@ export async function fetchBairroData(directusBairroSlug: string) {
 }
 
 /**
- * Busca todas as categorias do Directus.
+ * Busca todas as categorias do Directus (com limit=-1 para pegar todos os registros).
  */
 export async function fetchAllCategories(): Promise<Category[]> {
     const allCategoriesResponse = await fetch(
-        `${DIRECTUS_API_URL}mp_categorias_locais?fields=id,nome_nicho,full_slug_nicho,nivel_nicho`
+        `${DIRECTUS_API_URL}mp_categorias_locais?fields=id,nome_nicho,full_slug_nicho,nivel_nicho&limit=-1` 
     );
     const allCategoriesData = await allCategoriesResponse.json();
     return allCategoriesData.data || [];
