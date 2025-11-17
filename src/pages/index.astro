@@ -94,7 +94,7 @@ const metaDescription = `Encontre as melhores empresas, comércios e serviços d
                 <div style="font-size: 1rem; display: flex; flex-wrap: wrap;">
                     {bairrosSJC.map((bairro) => (
                         <a 
-                            href={`/${toUrlSlug(bairro.slug)}`} 
+                            href={`/${api.toUrlSlug(bairro.slug)}`}  {/* <-- CORRIGIDO AQUI: api.toUrlSlug */}
                             style={bairroTagStyle}
                         >
                             {bairro.nome}
@@ -111,7 +111,7 @@ const metaDescription = `Encontre as melhores empresas, comércios e serviços d
         {/* --- 3. CATEGORIAS NÍVEL 1 (PRINCIPAIS) --- */}
         <section style="margin-bottom: 3rem;">
             <h2 style="font-size: 1.5rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; font-weight: bold; color: #3b82f6;">
-                📍 Busca por Categoria (no Bairro {formatSlug(primeiroBairroDirectusSlug)})
+                📍 Busca por Categoria (no Bairro {api.formatSlug(primeiroBairroDirectusSlug)}) {/* <-- formatSlug também deve ter 'api.' */}
             </h2>
             
             <ul style="list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:0.75rem;">
@@ -124,7 +124,7 @@ const metaDescription = `Encontre as melhores empresas, comércios e serviços d
                                         {categoria.nome_nicho}
                                     </h3>
                                     <p style="margin:0; font-size:0.85rem; color:#666;">
-                                        Clique para ver em {formatSlug(primeiroBairroDirectusSlug)}
+                                        Clique para ver em {api.formatSlug(primeiroBairroDirectusSlug)} {/* <-- formatSlug também deve ter 'api.' */}
                                     </p>
                                 </article>
                             </a>
@@ -154,7 +154,7 @@ const metaDescription = `Encontre as melhores empresas, comércios e serviços d
                                 {categoria.nome_nicho}
                             </h3>
                             <p style="margin: 0; font-size: 0.85rem; color: #4b5563;">
-                                Ver {formatSlug(primeiroBairroDirectusSlug)}
+                                Ver {api.formatSlug(primeiroBairroDirectusSlug)} {/* <-- formatSlug também deve ter 'api.' */}
                             </p>
                         </a>
                     ))}
@@ -182,7 +182,7 @@ const metaDescription = `Encontre as melhores empresas, comércios e serviços d
                                 {categoria.nome_nicho}
                             </h3>
                             <p style="margin: 0; font-size: 0.85rem; color: #4b5563;">
-                                Ver {formatSlug(primeiroBairroDirectusSlug)}
+                                Ver {api.formatSlug(primeiroBairroDirectusSlug)} {/* <-- formatSlug também deve ter 'api.' */}
                             </p>
                         </a>
                     ))}
