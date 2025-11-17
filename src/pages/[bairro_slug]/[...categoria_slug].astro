@@ -1,5 +1,5 @@
 ---
-// Importação e prerender correto para SSR
+// CORREÇÃO: Caminho do Layout para rotas profundas
 import Layout from '../../layouts/Layout.astro'; 
 export const prerender = false; 
 
@@ -10,7 +10,7 @@ const CITY_NAME = "São José dos Campos";
 const SITE_NAME = "SJC.MP";
 const DIRECTUS_ASSETS_URL = 'https://directus.maisperto.com.br/assets/';
 
-// FUNÇÕES DE SLUG 
+// FUNÇÕES DE SLUG
 const toUrlSlug = (slug) => slug.replace(/_/g, '-');
 const toDirectusSlug = (slug) => slug.replace(/-/g, '_');
 const formatSlug = (slug) => slug.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
@@ -20,10 +20,10 @@ const formatSlug = (slug) => slug.replace(/_/g, ' ').toLowerCase().replace(/\b\w
 // 1. FUNÇÕES DE BUSCA 
 // ----------------------------------------------------
 
-const getNames = async (directusBairroSlug, directusCategorySlug) => {
+const getNamesAndDescriptions = async (directusBairroSlug, directusCategorySlug) => {
     const [bairroResponse, categoriaResponse] = await Promise.all([
         fetch(`${DIRECTUS_API_URL}mp_bairros?filter[cidade_relacionada][id]=${ID_SJC}&filter[slug_bairro][_eq]=${directusBairroSlug}&fields=nome_bairro`),
-        fetch(`${DIRECTUS_API_URL}mp_categorias_locais?filter[full_slug_nicho][_eq]=${directusCategorySlug}&fields=nome_nicho`)
+        fetch(`${DIRECTUS_API_URL}mp_categorias_locais?filter[full_slug_nicho][_eq]=${directusCategorySlug}&fields=nome_nicho,descricao_curta_nicho,descricao_completa_nicho`)
     ]);
 
     const [bairroData, categoriaData] = await Promise.all([
@@ -35,12 +35,22 @@ const getNames = async (directusBairroSlug, directusCategorySlug) => {
         ? bairroData.data[0].nome_bairro 
         : formatSlug(directusBairroSlug); 
 
-    const nomeCategoria = categoriaData.data && categoriaData.data.length > 0 
-        ? categoriaData.data[0].nome_nicho 
-        : formatSlug(directusCategorySlug);
+    const categoria = categoriaData.data && categoriaData.data.length > 0
+        ? categoriaData.data[0]
+        : null;
+
+    if (!categoria) {
+        return { nomeBairro, nomeCategoria: formatSlug(directusCategorySlug), curta: 'Encontre o que você procura no bairro.', error: true }; 
+    }
         
-    return { nomeBairro, nomeCategoria };
+    return { 
+        nomeBairro, 
+        nomeCategoria: categoria.nome_nicho || formatSlug(directusCategorySlug),
+        curta: categoria.descricao_curta_nicho || `Encontre os melhores serviços e empresas de ${categoria.nome_nicho} no bairro ${nomeBairro} em ${CITY_NAME}.`,
+        error: false
+    };
 };
+
 
 const getLocaisDaCategoria = async (bairroSlug, categoriaSlug) => {
     try {
@@ -48,12 +58,11 @@ const getLocaisDaCategoria = async (bairroSlug, categoriaSlug) => {
             'filter[bairro_relacionado][slug_bairro][_eq]': bairroSlug,
             'filter[categorias_locais][mp_categorias_locais_id][full_slug_nicho][_eq]': categoriaSlug,
             'filter[ativo][_eq]': 'true',
-            'fields': 'slug_local,nome_local,descricao_local,imagem_principal.filename_disk',
+            'fields': 'slug_local,nome_local,descricao_local,imagem_principal.filename_disk', 
             'limit': '-1'
         });
 
         const response = await fetch(`${DIRECTUS_API_URL}mp_locais?${params.toString()}`);
-
         if (!response.ok) {
             console.error(`Falha ao buscar locais. Status: ${response.status}`);
             return [];
@@ -75,18 +84,36 @@ const { 'bairro_slug': bairro_slug, 'categoria_slug': categoria_slug_param } = A
 
 const directusCategorySlug = Array.isArray(categoria_slug_param) 
     ? categoria_slug_param.join('/') 
-    : categoria_slug_param;           
-
+    : categoria_slug_param; 
+    
 const directusBairroSlug = toDirectusSlug(bairro_slug);
 
 // Busca de dados
-const { nomeBairro, nomeCategoria } = await getNames(directusBairroSlug, directusCategorySlug);
+const { nomeBairro, nomeCategoria, curta, error } = await getNamesAndDescriptions(directusBairroSlug, directusCategorySlug);
+
+// 404 se a categoria não existir
+if (error) {
+    return Astro.redirect('/404');
+}
+
 const locais = await getLocaisDaCategoria(directusBairroSlug, directusCategorySlug);
 
+
+// --- Variáveis para o Patrocínio ---
+const PATROCINIO_URL = 'https://maisperto.com.br/anunciar/'; // URL CORRIGIDA
+const tituloPatrocinio = `Patrocinador Destaque`; 
+const destaquePatrocinio = `Seja o patrocinador oficial desta página de ${nomeCategoria} em ${nomeBairro}`; // Texto Dinâmico
+const descricaoPatrocinioLonga = `Este espaço 300x600 é reservado para destacar, em primeira posição, a sua marca de ${nomeCategoria} em toda a cidade de ${CITY_NAME}. Aqui você pode exibir um criativo no formato 300x600, atrair clientes do nicho ${nomeCategoria} e ainda combinar com campanhas externas.`;
+const contatoPatrocinio = `Entre em contato com a equipe MAISPERTO para reservar este espaço e ativar sua campanha combinando anúncios locais, TikTags e blocos com banners 300x600 alinhados ao seu objetivo de vendas.`;
+
 const title = `${nomeCategoria} em ${nomeBairro} | ${SITE_NAME}`;
+const metaDescription = curta; 
+
+// ...
+
 ---
 
-<Layout title={title}>
+<Layout title={title} description={metaDescription}>
     
     <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
 
@@ -103,51 +130,95 @@ const title = `${nomeCategoria} em ${nomeBairro} | ${SITE_NAME}`;
                 {nomeCategoria} em {nomeBairro}
             </h1>
             <p style="margin: 0; font-size: 1.1rem; color: #555;">
-                Encontre o que você procura no bairro.
+                {curta}
             </p>
         </header>
 
         <section style="margin-bottom: 3rem;">
-            {locais.length > 0 ? (
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-                    {locais.map((local) => (
-                        <a 
-                            href={`/${bairro_slug}/${local.slug_local}`} 
-                            style="text-decoration: none; display: block; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #fff; border: 1px solid #eee;"
-                        >
-                            <article style="height: 100%;">
-                                
-                                {local.imagem_principal?.filename_disk ? (
-                                    <img 
-                                        src={`${DIRECTUS_ASSETS_URL}${local.imagem_principal.filename_disk}?width=400&height=200&fit=cover`} 
-                                        alt={`Imagem de ${local.nome_local}`} 
-                                        style="width: 100%; height: 200px; object-fit: cover;"
-                                    />
-                                ) : (
-                                    <div style="width: 100%; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 0.9rem;">
-                                        Sem Imagem
-                                    </div>
-                                )}
+            
+          {/* 🛑 CARD DE PATROCÍNIO FIXO RESPONSIVO */}
+            <div class="card-grid">
+                <article class="patrocinio-card">
+                    
+                    {/* SEÇÃO 1: MÍDIA (Adsense) */}
+                    <div class="patrocinio-media">
+                        <div style="width: 100%; height: 100%; background: #e9ffe9; display: flex; align-items: center; justify-content: center; text-align: center;">
+                            {/* SEU CÓDIGO ADSENSE AQUI */}
+                            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3803893738575618"
+                                crossorigin="anonymous"></script>
+                            <ins class="adsbygoogle"
+                                style="display:block; max-width: 300px; max-height: 600px;"
+                                data-ad-client="ca-pub-3803893738575618"
+                                data-ad-slot="2377366455"
+                                data-ad-format="auto"
+                                data-full-width-responsive="true"></ins>
+                            <script>
+                                (adsbygoogle = window.adsbygoogle || []).push({});
+                            </script>
+                        </div>
+                    </div>
+                    
+                    {/* SEÇÃO 2: CONTEÚDO E CTA - AGORA DINÂMICO */}
+                    <div class="patrocinio-content">
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: #28a745;">
+                            {tituloPatrocinio}
+                        </h3>
+                        <p style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #1f2937; font-weight: 600;">
+                            {destaquePatrocinio}
+                        </p>
+                        <p style="margin: 0 0 1rem 0; font-size: 0.95rem; color: #4b5563;">
+                            {descricaoPatrocinioLonga}
+                        </p>
+                        <p style="margin: 0; font-size: 0.9rem; color: #6b7280;">
+                            {contatoPatrocinio}
+                        </p>
 
-                                <div style="padding: 1rem;">
-                                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: #1f2937;">
-                                        {local.nome_local}
-                                    </h3>
-                                    <p style="margin: 0; font-size: 0.95rem; color: #4b5563;">
-                                        {local.descricao_local || 'Nenhuma descrição disponível.'}
-                                    </p>
-                                </div>
-                            </article>
+                        <a href={PATROCINIO_URL} class="ad-cta-button" target="_blank" rel="noopener noreferrer">
+                            Quero anunciar nesta página
                         </a>
-                    ))}
-                </div>
-            ) : (
-                <div style="padding: 2rem; border: 1px dashed #fcd34d; border-radius: 8px; background: #fffbeb; text-align: center;">
+                    </div>
+                </article>
+
+                {/* LOCAIS CADASTRADOS (SEMPRE OCUPAM AS COLUNAS RESTANTES) */}
+                {/* ... (restante do loop de locais) ... */}
+
+                {locais.length > 0 && locais.map((local) => (
+                    <a  
+                        href={`/${bairro_slug}/${toUrlSlug(local.slug_local)}`} 
+                        class="local-card-link"
+                    >
+                        <article class="local-card">
+                            
+                            {local.imagem_principal?.filename_disk ? (
+                                <img 
+                                    src={`${DIRECTUS_ASSETS_URL}${local.imagem_principal.filename_disk}?width=400&height=200&fit=cover`} 
+                                    alt={`Imagem de ${local.nome_local}`} 
+                                    class="local-card-image"
+                                />
+                            ) : (
+                                <div class="local-card-placeholder">
+                                    Sem Imagem
+                                </div>
+                            )}
+
+                            <div style="padding: 1rem;">
+                                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: #1f2937;">
+                                    {local.nome_local}
+                                </h3>
+                                <p style="margin: 0; font-size: 0.95rem; color: #4b5563;">
+                                    {local.descricao_local || 'Nenhuma descrição disponível.'}
+                                </p>
+                            </div>
+                        </article>
+                    </a>
+                ))}
+
+            </div>
+
+            {locais.length === 0 && (
+                <div style="padding: 2rem; border: 1px dashed #fcd34d; border-radius: 8px; background: #fffbeb; text-align: center; margin-top: 1.5rem;">
                     <p style="color: #d97706; font-weight: 600; font-size: 1.1rem;">
                         Nenhum negócio ativo encontrado para "{nomeCategoria}" em "{nomeBairro}".
-                    </p>
-                    <p style="color: #999; font-size: 0.9rem;">
-                        Critérios de busca: Bairro <code>{directusBairroSlug}</code> | Categoria <code>{directusCategorySlug}</code>.
                     </p>
                 </div>
             )}
@@ -155,3 +226,148 @@ const title = `${nomeCategoria} em ${nomeBairro} | ${SITE_NAME}`;
 
     </div>
 </Layout>
+
+<style>
+    /* CORREÇÃO FINAL: Aplica box-sizing para que padding e border sejam incluídos DENTRO da largura de 300px */
+    .patrocinio-card, .local-card, 
+    .patrocinio-card *, .local-card *, 
+    .local-card-link, .ad-cta-button {
+        box-sizing: border-box; 
+    }
+
+    /* ------------------------------------------- */
+    /* ESTILOS DA SEÇÃO E DO GRID PRINCIPAL */
+    /* ------------------------------------------- */
+    .card-grid {
+        display: grid;
+        /* Garante que o grid crie colunas de 300px */
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* ------------------------------------------- */
+    /* CARD BASE (Patrocínio e Locais) */
+    /* ------------------------------------------- */
+    .patrocinio-card, .local-card {
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: #fff;
+        height: 100%;
+        
+        /* 1. Garante a altura mínima de 600px para o card principal */
+        min-height: 600px;
+        
+        /* 2. Layout vertical por padrão (Mobile) */
+        display: flex;
+        flex-direction: column; 
+    }
+
+    /* Estilos específicos de borda/sombra */
+    .patrocinio-card {
+        border: 2px solid #28a745;
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+    }
+    .local-card {
+        border: 1px solid #eee;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ------------------------------------------- */
+    /* SUBSEÇÕES DENTRO DO CARD */
+    /* ------------------------------------------- */
+    .patrocinio-media, .patrocinio-content {
+        /* Permite que o conteúdo e a mídia ocupem o espaço necessário */
+        flex-grow: 1;
+        min-height: 300px; /* Garante que a mídia e o conteúdo tenham 300px de altura mínima cada no celular */
+    }
+
+    .patrocinio-media {
+        /* Estiliza o contêiner do Adsense (Mídia) */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .patrocinio-content {
+        /* Conteúdo (baixo no mobile) */
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Empurra o botão para baixo */
+    }
+
+    .ad-cta-button {
+        display: block; 
+        padding: 0.6rem; 
+        text-align: center; 
+        background: #28a745; 
+        color: white; 
+        text-decoration: none; 
+        border-radius: 0.5rem; 
+        font-weight: 600;
+        margin-top: auto; /* Garante que o botão vá para o final do bloco */
+    }
+
+
+    /* ------------------------------------------- */
+    /* MEDIA QUERY: Desktop/Tablet (Grade de 2 Colunas) */
+    /* ------------------------------------------- */
+    @media (min-width: 640px) {
+        .patrocinio-card {
+            /* Desktop: Layout horizontal (Mídia | Conteúdo) */
+            flex-direction: row; 
+            /* Define a largura máxima total do card no desktop (300px + 300px) */
+            max-width: 600px;
+            /* Remove a altura mínima no container principal para permitir o crescimento do conteúdo */
+            min-height: auto; 
+            margin: 0 auto 1.5rem; /* Centraliza o card na grade */
+        }
+        
+        .patrocinio-media, .patrocinio-content {
+            /* Definimos 300px fixo para garantir a proporção 300x600 */
+            min-width: 300px;
+            max-width: 300px; 
+            min-height: 600px; /* Garante que ambos tenham 600px de altura */
+            flex-basis: 300px; /* Ajuda o flex a entender a largura base */
+            flex-shrink: 0; /* Impede que o browser tente reduzir essa largura */
+        }
+
+        .patrocinio-media {
+            border-right: 2px solid #28a745; /* Linha de separação */
+        }
+    }
+
+    /* ------------------------------------------- */
+    /* ESTILOS DOS CARDS NORMAIS (EMPRESAS) */
+    /* ------------------------------------------- */
+    .local-card-link {
+        text-decoration: none;
+        display: block;
+        height: 100%;
+    }
+
+    .local-card {
+        /* ... existente ... */
+    }
+
+    .local-card-image {
+        width: 100%; 
+        height: 300px; 
+        object-fit: cover;
+    }
+
+    .local-card-placeholder {
+        width: 100%; 
+        height: 300px; 
+        background: #f0f0f0; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #aaa; 
+        font-size: 0.9rem;
+    }
+</style>

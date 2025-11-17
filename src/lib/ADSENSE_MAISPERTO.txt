@@ -1,0 +1,12 @@
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3803893738575618"
+     crossorigin="anonymous"></script>
+<!-- SP-MAISPERTO-11-2025-ADSENSE -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-3803893738575618"
+     data-ad-slot="2377366455"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
