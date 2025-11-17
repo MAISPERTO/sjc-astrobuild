@@ -1,0 +1,157 @@
+---
+// Importação e prerender correto para SSR
+import Layout from '../../layouts/Layout.astro'; 
+export const prerender = false; 
+
+// Definições globais
+const DIRECTUS_API_URL = 'https://directus.maisperto.com.br/items/'; 
+const ID_SJC = 3; 
+const CITY_NAME = "São José dos Campos";
+const SITE_NAME = "SJC.MP";
+const DIRECTUS_ASSETS_URL = 'https://directus.maisperto.com.br/assets/';
+
+// FUNÇÕES DE SLUG 
+const toUrlSlug = (slug) => slug.replace(/_/g, '-');
+const toDirectusSlug = (slug) => slug.replace(/-/g, '_');
+const formatSlug = (slug) => slug.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+
+// ----------------------------------------------------
+// 1. FUNÇÕES DE BUSCA 
+// ----------------------------------------------------
+
+const getNames = async (directusBairroSlug, directusCategorySlug) => {
+    const [bairroResponse, categoriaResponse] = await Promise.all([
+        fetch(`${DIRECTUS_API_URL}mp_bairros?filter[cidade_relacionada][id]=${ID_SJC}&filter[slug_bairro][_eq]=${directusBairroSlug}&fields=nome_bairro`),
+        fetch(`${DIRECTUS_API_URL}mp_categorias_locais?filter[full_slug_nicho][_eq]=${directusCategorySlug}&fields=nome_nicho`)
+    ]);
+
+    const [bairroData, categoriaData] = await Promise.all([
+        bairroResponse.json(), 
+        categoriaResponse.json()
+    ]);
+
+    const nomeBairro = bairroData.data && bairroData.data.length > 0 
+        ? bairroData.data[0].nome_bairro 
+        : formatSlug(directusBairroSlug); 
+
+    const nomeCategoria = categoriaData.data && categoriaData.data.length > 0 
+        ? categoriaData.data[0].nome_nicho 
+        : formatSlug(directusCategorySlug);
+        
+    return { nomeBairro, nomeCategoria };
+};
+
+const getLocaisDaCategoria = async (bairroSlug, categoriaSlug) => {
+    try {
+        const params = new URLSearchParams({
+            'filter[bairro_relacionado][slug_bairro][_eq]': bairroSlug,
+            'filter[categorias_locais][mp_categorias_locais_id][full_slug_nicho][_eq]': categoriaSlug,
+            'filter[ativo][_eq]': 'true',
+            'fields': 'slug_local,nome_local,descricao_local,imagem_principal.filename_disk',
+            'limit': '-1'
+        });
+
+        const response = await fetch(`${DIRECTUS_API_URL}mp_locais?${params.toString()}`);
+
+        if (!response.ok) {
+            console.error(`Falha ao buscar locais. Status: ${response.status}`);
+            return [];
+        }
+        const data = await response.json();
+        return data.data || [];
+    } catch (error) {
+        console.error('ERRO na busca de Locais:', error);
+        return [];
+    }
+};
+
+
+// ----------------------------------------------------
+// 2. Execução do código com 'await'
+// ----------------------------------------------------
+
+const { 'bairro_slug': bairro_slug, 'categoria_slug': categoria_slug_param } = Astro.params;
+
+const directusCategorySlug = Array.isArray(categoria_slug_param) 
+    ? categoria_slug_param.join('/') 
+    : categoria_slug_param;           
+
+const directusBairroSlug = toDirectusSlug(bairro_slug);
+
+// Busca de dados
+const { nomeBairro, nomeCategoria } = await getNames(directusBairroSlug, directusCategorySlug);
+const locais = await getLocaisDaCategoria(directusBairroSlug, directusCategorySlug);
+
+const title = `${nomeCategoria} em ${nomeBairro} | ${SITE_NAME}`;
+---
+
+<Layout title={title}>
+    
+    <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
+
+        <header style="margin-bottom: 2rem;">
+            <nav style="margin-bottom: 0.5rem; font-size: 0.85rem; color: #777; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <a href="/" style="color: #555; text-decoration: none;">{CITY_NAME}</a>
+                <span style="margin: 0 0.25rem;">›</span>
+                <a href={`/${bairro_slug}/`} style="color: #555; text-decoration: none;">{nomeBairro}</a>
+                <span style="margin: 0 0.25rem;">›</span>
+                <span style="font-weight: 600; color: #333;">{nomeCategoria}</span>
+            </nav>
+        
+            <h1 style="margin: 0 0 0.5rem 0; font-size: 2.2rem; font-weight: 800; color: #1f2937;">
+                {nomeCategoria} em {nomeBairro}
+            </h1>
+            <p style="margin: 0; font-size: 1.1rem; color: #555;">
+                Encontre o que você procura no bairro.
+            </p>
+        </header>
+
+        <section style="margin-bottom: 3rem;">
+            {locais.length > 0 ? (
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    {locais.map((local) => (
+                        <a 
+                            href={`/${bairro_slug}/${local.slug_local}`} 
+                            style="text-decoration: none; display: block; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #fff; border: 1px solid #eee;"
+                        >
+                            <article style="height: 100%;">
+                                
+                                {local.imagem_principal?.filename_disk ? (
+                                    <img 
+                                        src={`${DIRECTUS_ASSETS_URL}${local.imagem_principal.filename_disk}?width=400&height=200&fit=cover`} 
+                                        alt={`Imagem de ${local.nome_local}`} 
+                                        style="width: 100%; height: 200px; object-fit: cover;"
+                                    />
+                                ) : (
+                                    <div style="width: 100%; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 0.9rem;">
+                                        Sem Imagem
+                                    </div>
+                                )}
+
+                                <div style="padding: 1rem;">
+                                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: #1f2937;">
+                                        {local.nome_local}
+                                    </h3>
+                                    <p style="margin: 0; font-size: 0.95rem; color: #4b5563;">
+                                        {local.descricao_local || 'Nenhuma descrição disponível.'}
+                                    </p>
+                                </div>
+                            </article>
+                        </a>
+                    ))}
+                </div>
+            ) : (
+                <div style="padding: 2rem; border: 1px dashed #fcd34d; border-radius: 8px; background: #fffbeb; text-align: center;">
+                    <p style="color: #d97706; font-weight: 600; font-size: 1.1rem;">
+                        Nenhum negócio ativo encontrado para "{nomeCategoria}" em "{nomeBairro}".
+                    </p>
+                    <p style="color: #999; font-size: 0.9rem;">
+                        Critérios de busca: Bairro <code>{directusBairroSlug}</code> | Categoria <code>{directusCategorySlug}</code>.
+                    </p>
+                </div>
+            )}
+        </section>
+
+    </div>
+</Layout>

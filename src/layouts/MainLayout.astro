@@ -1,0 +1,43 @@
+// src/layouts/MainLayout.astro (Conteúdo restaurado do seu arquivo Layout.astro)
+---
+// Define as propriedades de título que o layout recebe
+const { title = "MAISPERTO SJC" } = Astro.props;
+const { siteName = "MAISPERTO SJC", siteTagline = "Guia Local" } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <slot name="head" />
+</head>
+<body style="background: #f7f7f7; min-height: 100vh; display: flex; flex-direction: column; font-family: sans-serif;">
+
+    <header style="background: #fff; border-bottom: 1px solid #eee; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 50;">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <a href="/" style="font-size: 1.5rem; font-weight: bold; color: #1f2937; text-decoration: none;">
+                MAISPERTO <span style="color: #3b82f6;">SJC</span>
+            </a>
+            
+            <nav style="font-size: 0.9rem;">
+                <a href="/" style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; color: #4b5563; text-decoration: none; transition: background 0.2s;">Início</a>
+                <a href="/sobre/" style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; color: #4b5563; text-decoration: none; transition: background 0.2s;">Sobre</a>
+            </nav>
+        </div>
+    </header>
+
+    <main style="flex-grow: 1;">
+        <slot />
+    </main>
+    
+    <footer style="background: #1f2937; color: #fff; padding: 1rem; text-align: center; margin-top: auto;">
+        <div style="max-width: 1280px; margin: 0 auto;">
+            <p style="font-size: 0.75rem; color: #9ca3af; margin: 0;">© 2024 MAISPERTO SJC. Todos os direitos reservados. Projeto SJC.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

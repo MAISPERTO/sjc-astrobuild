@@ -1,0 +1,132 @@
+---
+import Layout from '../../layouts/Layout.astro'; 
+import { 
+    toDirectusSlug, 
+    formatSlug, 
+    fetchBairroData, 
+    fetchAllCategories,
+    groupCategories,
+} from '../../lib/directus'; // Importando tudo do novo arquivo
+
+export const prerender = false; 
+
+const { 'bairro_slug': bairro_slug } = Astro.params;
+
+// Variáveis de exibição
+const CITY_NAME = "São José dos Campos";
+const SITE_NAME = "SJC.MP";
+
+const directusBairroSlug = toDirectusSlug(bairro_slug);
+
+// ----------------------------------------------------
+// 1. Busca do Nome do Bairro (Usando função importada)
+// ----------------------------------------------------
+const nomeBairroData = await fetchBairroData(directusBairroSlug);
+
+const nomeBairro = nomeBairroData
+    ? nomeBairroData 
+    : formatSlug(directusBairroSlug); 
+
+// ----------------------------------------------------
+// 2. Busca e Agrupamento de Categorias (Usando funções importadas)
+// ----------------------------------------------------
+const allCategories = await fetchAllCategories();
+const finalGroups = groupCategories(allCategories);
+
+
+const title = `${nomeBairro} | Categorias e Serviços em ${nomeBairro} | ${SITE_NAME}`;
+
+// Estilos
+const cardStyle = "text-decoration: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #fff; border: 1px solid #eee; padding: 1.5rem; min-height: 150px;";
+const cardStyleNv3 = "text-decoration: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #eff6ff; border: 1px solid #3b82f6; padding: 1.5rem; min-height: 150px;";
+const gridStyle = "display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;";
+const sectionDividerStyle = "margin: 3rem 0; border: none; height: 1px; background: #ddd;"; 
+---
+
+<Layout title={title}>
+    
+    <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
+
+        <header style="margin-bottom: 2rem;">
+            <nav style="margin-bottom: 0.5rem; font-size: 0.85rem; color: #777; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <a href="/" style="color: #555; text-decoration: none;">{CITY_NAME}</a>
+                <span style="margin: 0 0.25rem;">›</span>
+                <span style="font-weight: 600; color: #333;">{nomeBairro}</span>
+            </nav>
+        
+            <h1 style="margin: 0 0 0.5rem 0; font-size: 2.2rem; font-weight: 800; color: #1f2937;">
+                Categorias em {nomeBairro}
+            </h1>
+            <p style="margin: 0; font-size: 1.1rem; color: #555;">
+                Encontre serviços e negócios no bairro.
+            </p>
+        </header>
+
+        <section style="margin-bottom: 3rem;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1f2937; margin-bottom: 2rem;">
+                Explorar por Categoria
+            </h2>
+            
+            {finalGroups.length > 0 ? (
+                finalGroups.map(group => (
+                    
+                    <div style="margin-bottom: 3rem;">
+                        
+                        {/* TÍTULO NÍVEL 1: A Categoria Principal */}
+                        <h3 style="font-size: 1.5rem; font-weight: 700; color: #059669; margin-bottom: 1.5rem; border-bottom: 2px solid #059669; padding-bottom: 0.5rem; display: block;">
+                            <a href={`/${bairro_slug}/${group.data.full_slug_nicho}`} style="color: inherit; text-decoration: none;">
+                                {group.data.nome_nicho}
+                            </a>
+                        </h3>
+
+                        {/* SUBCATEGORIAS (NÍVEL 2 e 3) */}
+                        {(group.nv2.length > 0 || group.nv3.length > 0) ? (
+                            <div style={gridStyle}>
+                                
+                                {/* Renderiza Nível 2 */}
+                                {group.nv2.map((categoria) => (
+                                    <a 
+                                        href={`/${bairro_slug}/${categoria.full_slug_nicho}`} 
+                                        style={cardStyle}
+                                    >
+                                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #1f2937;">
+                                            {categoria.nome_nicho} (Nv2)
+                                        </h4>
+                                        <p style="margin: 0; font-size: 0.85rem; color: #4b5563;">
+                                            Ver {nomeBairro}
+                                        </p>
+                                    </a>
+                                ))}
+
+                                {/* Renderiza Nível 3 */}
+                                {group.nv3.map((categoria) => (
+                                    <a 
+                                        href={`/${bairro_slug}/${categoria.full_slug_nicho}`} 
+                                        style={cardStyleNv3}
+                                    >
+                                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #1f2937;">
+                                            {categoria.nome_nicho} (Nv3)
+                                        </h4>
+                                        <p style="margin: 0; font-size: 0.85rem; color: #3b82f6; font-weight: 600;">
+                                            Serviço Específico
+                                        </p>
+                                    </a>
+                                ))}
+
+                            </div>
+                        ) : (
+                            <p style="color: #999; margin-top: 1rem;">Nenhuma subcategoria detalhada encontrada.</p>
+                        )}
+
+                        {/* DIVISOR ENTRE GRUPOS Nv1 */}
+                        <hr style={sectionDividerStyle} />
+                    </div>
+                ))
+            ) : (
+                <p style="color: #999;">Nenhuma categoria principal encontrada.</p>
+            )}
+
+        </section>
+
+    </div>
+</Layout>

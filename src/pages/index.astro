@@ -1,16 +1,103 @@
 ---
+// src/pages/index.astro (VERSÃO RESTAURADA COM CSS INLINE/ESTILO FLORIPA)
+import Layout from '../layouts/Layout.astro'; 
 
+// Definições globais (mantidas do arquivo corrigido)
+const ID_SJC = 3; 
+const DIRECTUS_API_URL = 'https://directus.maisperto.com.br/items/'; 
+
+// FUNÇÕES ESSENCIAIS
+const toUrlSlug = (slug) => slug.replace(/_/g, '-');
+const formatSlug = (slug) => slug.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+// 1. Consulta de Todos os Bairros de SJC 
+const bairrosResponse = await fetch(
+  `${DIRECTUS_API_URL}mp_bairros?filter[cidade_relacionada][id]=${ID_SJC}&fields=slug_bairro,nome_bairro&sort=nome_bairro`
+);
+const bairrosData = await bairrosResponse.json();
+const bairrosSJC = bairrosData.data 
+    ? bairrosData.data.map(item => ({ 
+        slug: item.slug_bairro, 
+        nome: item.nome_bairro 
+      })) 
+    : [];
+
+// 2. Consulta de Todas as Categorias Locais
+const categoriasResponse = await fetch(
+  `${DIRECTUS_API_URL}mp_categorias_locais?fields=full_slug_nicho,nome_nicho&sort=nome_nicho`
+);
+const categoriasData = await categoriasResponse.json();
+const categorias = categoriasData.data 
+    ? categoriasData.data.map(item => ({ 
+        slug: item.full_slug_nicho, 
+        nome: item.nome_nicho 
+      })) 
+    : [];
+    
+// Define o primeiro bairro encontrado para ser a "âncora" na navegação por categoria
+const primeiroBairroDirectusSlug = bairrosSJC.length > 0
+    ? bairrosSJC[0].slug
+    : 'jardim_satelite';
+const primeiroBairroUrlSlug = toUrlSlug(primeiroBairroDirectusSlug);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="Home | MAISPERTO SJC: O Diretório de Negócios Locais">
+    <div style="padding: 2rem 1rem; max-width: 1280px; margin: 0 auto;">
+        
+        <header style="margin-bottom: 2.5rem; text-align: center;">
+            <h1 style="margin: 0 0 0.5rem 0; font-size: 2.5rem; font-weight: 800; color: #1f2937;">
+                MAISPERTO SJC: O Diretório de Negócios Locais em São José dos Campos
+            </h1>
+            <p style="margin: 0; font-size: 1.25rem; color: #555;">
+                Encontre o que você procura por Categoria ou Bairro.
+            </p>
+        </header>
+
+        <section style="margin-bottom: 2rem; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1rem; font-weight: bold; color: #10b981;">
+                🏙️ Navegar por Bairro
+            </h2>
+            
+            <ul style="list-style:none; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:0.5rem;">
+                {bairrosSJC.length > 0 ? (
+                    bairrosSJC.map((bairro) => (
+                        <a href={`/${toUrlSlug(bairro.slug)}/`} style="text-decoration: none;">
+                            <li style="background:#fff; border-radius:0.5rem; border:1px solid #ddd; padding:0.4rem 0.8rem; font-size:0.9rem; color: #333; transition: background 0.2s; cursor: pointer;">
+                                {bairro.nome}
+                            </li>
+                        </a>
+                    ))
+                ) : (
+                    <p style="color: red;">Nenhum bairro encontrado.</p>
+                )}
+            </ul>
+        </section>
+
+        <section style="margin-bottom: 2rem; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1rem; font-weight: bold; color: #3b82f6;">
+                📍 Busca por Categoria (no Bairro {formatSlug(primeiroBairroDirectusSlug)})
+            </h2>
+            
+            <ul style="list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:0.75rem;">
+                {categorias.length > 0 ? (
+                    categorias.map((categoria) => (
+                        <li>
+                            <a href={`/${primeiroBairroUrlSlug}/${categoria.slug}`} style="text-decoration: none;">
+                                <article style="background:#fff; border-radius:0.75rem; border:1px solid #ddd; padding:0.75rem 1rem; height: 100%; transition: background 0.2s; cursor: pointer;">
+                                    <h3 style="margin:0; font-size:1.05rem; color:#005bbb; font-weight: 600;">
+                                        {categoria.nome}
+                                    </h3>
+                                    <p style="margin:0; font-size:0.85rem; color:#666;">
+                                        Clique para ver em {formatSlug(primeiroBairroDirectusSlug)}
+                                    </p>
+                                </article>
+                            </a>
+                        </li>
+                    ))
+                ) : (
+                    <p style="color: red;">Nenhuma categoria encontrada.</p>
+                )}
+            </ul>
+        </section>
+    </div>
+</Layout>
