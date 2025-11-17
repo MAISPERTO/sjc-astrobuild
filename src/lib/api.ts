@@ -104,14 +104,15 @@ export async function fetchAllCategories(): Promise<Category[]> {
 export function groupCategories(allCategories: Category[]) {
     const groupedCategories: Record<string, any> = {};
     
-    // 1. Inicializar os Nv1s que são raízes (usando NV1_IDS como filtro)
+// 1. Inicializar os Nv1s que são raízes (KEY: slug_nicho, que é o underscore/Directus slug)
     const nv1RootCategorias = allCategories.filter(
         c => Number(c.nivel_nicho) === 1 && NV1_IDS.includes(Number(c.id))
     );
 
     nv1RootCategorias.forEach(cat => {
-        const slug = cat.full_slug_nicho;
-        groupedCategories[slug] = {
+        // Usar o slug_nicho (underscore) como chave. Ex: 'alimentos_e_bebidas'
+        const directusSlugKey = cat.slug_nicho; 
+        groupedCategories[directusSlugKey] = {
             data: cat,
             nv2: [],
             nv3: []
@@ -122,17 +123,20 @@ export function groupCategories(allCategories: Category[]) {
     const subCategorias = allCategories.filter(c => Number(c.nivel_nicho) > 1);
 
     subCategorias.forEach(cat => {
-        const fullSlug = cat.full_slug_nicho;
+        const fullSlug = cat.full_slug_nicho; // Ex: 'alimentos-e-bebidas/restaurantes' (Hyphenated)
         
-        // O slug da raiz Nv1 é sempre a primeira parte do full_slug_nicho
-        const nv1RootSlug = fullSlug.split('/')[0];
+        // Extrai a parte Nv1 do fullSlug (Hyphenated)
+        const nv1RootUrlSlug = fullSlug.split('/')[0];
         
-        // Se a categoria Nv1 existe no nosso objeto de agrupamento
-        if (groupedCategories[nv1RootSlug]) {
+        // Converte o slug Nv1 de URL (hyphenated) para o slug de Directus (underscore) para bater a chave
+        const nv1RootDirectusSlug = toDirectusSlug(nv1RootUrlSlug); // Usa a função toDirectusSlug
+
+        // Se a categoria Nv1 (keyada por slug_nicho) existe no nosso objeto de agrupamento
+        if (groupedCategories[nv1RootDirectusSlug]) {
             if (Number(cat.nivel_nicho) === 2) {
-                groupedCategories[nv1RootSlug].nv2.push(cat);
+                groupedCategories[nv1RootDirectusSlug].nv2.push(cat);
             } else if (Number(cat.nivel_nicho) === 3) {
-                groupedCategories[nv1RootSlug].nv3.push(cat);
+                groupedCategories[nv1RootDirectusSlug].nv3.push(cat);
             }
         }
     });

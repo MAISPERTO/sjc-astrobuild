@@ -1,49 +1,59 @@
-// src/pages/[bairro_slug]/index.astro
-
 ---
+// src/pages/[bairro_slug]/index.astro (VERSÃO ESTÁVEL)
 import Layout from '../../layouts/Layout.astro';
-import { 
-    // Garanta que todas estas funções venham de 'api'
-    toDirectusSlug, 
-    formatSlug, 
-    fetchBairroData, 
-    // ... outras funções que você usa
-} from '../../lib/api'; // <-- CORREÇÃO: Deve ser 'api'
-// ...
+// 1. CORREÇÃO DE IMPORTAÇÃO: Usar Namespace Import (mais estável)
+import * as api from '../../lib/api'; 
 
 export const prerender = false; 
 
 const { 'bairro_slug': bairro_slug } = Astro.params;
 
-// Variáveis de exibição
+// Variáveis de exibição (SJC Corretas)
 const CITY_NAME = "São José dos Campos";
 const SITE_NAME = "SJC.MP";
 
-const directusBairroSlug = toDirectusSlug(bairro_slug);
+// 2. CORREÇÃO: Usar o prefixo 'api.' em todas as chamadas de função
+const directusBairroSlug = api.toDirectusSlug(bairro_slug);
+
+// Inicializa variáveis para tratamento de erro
+let nomeBairro = api.formatSlug(directusBairroSlug); // Nome de fallback
+let allCategories = [];
+let finalGroups = [];
+
 
 // ----------------------------------------------------
-// 1. Busca do Nome do Bairro (Usando função importada)
+// 1. Busca do Nome do Bairro (COM TRY/CATCH para evitar crash)
 // ----------------------------------------------------
-const nomeBairroData = await fetchBairroData(directusBairroSlug);
+try {
+    const nomeBairroData = await api.fetchBairroData(directusBairroSlug); 
+    if (nomeBairroData) {
+        nomeBairro = nomeBairroData; 
+    }
+} catch (e) {
+    console.error(`ERRO: Falha ao buscar dados do bairro ${bairro_slug}. Usando nome de fallback.`, e);
+}
 
-const nomeBairro = nomeBairroData
-    ? nomeBairroData 
-    : formatSlug(directusBairroSlug); 
 
 // ----------------------------------------------------
-// 2. Busca e Agrupamento de Categorias (Usando funções importadas)
+// 2. Busca e Agrupamento de Categorias (COM TRY/CATCH para evitar crash)
 // ----------------------------------------------------
-const allCategories = await fetchAllCategories();
-const finalGroups = groupCategories(allCategories);
+try {
+    allCategories = await api.fetchAllCategories(); // CORREÇÃO: Função chamada via 'api.'
+    finalGroups = api.groupCategories(allCategories); // CORREÇÃO: Função chamada via 'api.'
+} catch (e) {
+    console.error(`ERRO: Falha ao buscar ou agrupar categorias para ${bairro_slug}. Renderizando vazio.`, e);
+}
 
-
+// ----------------------------------------------------
+// 3. SEO e Estilos
+// ----------------------------------------------------
 const title = `${nomeBairro} | Categorias e Serviços em ${nomeBairro} | ${SITE_NAME}`;
 
-// Estilos
+// Estilos (mantidos)
 const cardStyle = "text-decoration: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #fff; border: 1px solid #eee; padding: 1.5rem; min-height: 150px;";
 const cardStyleNv3 = "text-decoration: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; background: #eff6ff; border: 1px solid #3b82f6; padding: 1.5rem; min-height: 150px;";
 const gridStyle = "display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;";
-const sectionDividerStyle = "margin: 3rem 0; border: none; height: 1px; background: #ddd;"; 
+const sectionDividerStyle = "margin: 3rem 0; border: none; height: 1px; background: #ddd;";
 ---
 
 <Layout title={title}>
