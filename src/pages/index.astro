@@ -1,10 +1,7 @@
 ---
-// src/pages/index.astro (VERSÃO CORRIGIDA PARA AMBIENTE LOCAL/VITE SSR)
+// src/pages/index.astro (VERSÃO FINAL COM SDK E TRATAMENTO DE ERROS)
 import Layout from '../layouts/Layout.astro'; 
-
-// --- NOVO PADRÃO DE IMPORTAÇÃO ---
-// Importa todas as funções de api.ts sob o namespace 'api' para evitar erro de SSR.
-import * as api from '../lib/api'; 
+import * as api from '../lib/api'; // Importação padrão para estabilidade
 
 export const prerender = false; // Necessário para a arquitetura SSR
 
@@ -15,8 +12,18 @@ const SITE_DOMAIN = import.meta.env.SITE || 'MAISPERTO';
 
 // --- BUSCAS DE DADOS (USANDO SDK VIA API.FUNCAO) ---
 
+let bairrosDirectus = [];
+let bairroReferenciaDirectusSlug = 'jardim_aquarius'; // Fallback seguro
+let todasCategorias = [];
+
+
 // 1. Consulta de Todos os Bairros de SJC (Listagem no topo)
-const bairrosDirectus = await api.fetchAllBairros(); // <-- MUDANÇA AQUI
+try {
+    bairrosDirectus = await api.fetchAllBairros();
+} catch (e) {
+    console.error("ERRO [index]: Falha ao buscar bairros. Renderizando lista vazia.", e);
+}
+
 const bairrosSJC = bairrosDirectus.map(item => ({ 
     slug: item.slug_bairro, 
     nome: item.nome_bairro 
@@ -24,15 +31,27 @@ const bairrosSJC = bairrosDirectus.map(item => ({
 
 
 // 2. Define o Bairro de Referência (Jardim Aquarius)
-const bairroReferenciaDirectusSlug = await api.fetchReferenciaBairroSlug(); // <-- MUDANÇA AQUI
+try {
+    const fetchedSlug = await api.fetchReferenciaBairroSlug();
+    if (fetchedSlug) {
+        bairroReferenciaDirectusSlug = fetchedSlug;
+    }
+} catch (e) {
+    console.error("ERRO [index]: Falha ao buscar bairro de referência. Usando 'jardim_aquarius'.", e);
+}
 
 // Redefine as variáveis de URL de referência (Jardim Aquarius)
-const primeiroBairroUrlSlug = api.toUrlSlug(bairroReferenciaDirectusSlug); // <-- MUDANÇA AQUI
+const primeiroBairroUrlSlug = api.toUrlSlug(bairroReferenciaDirectusSlug);
 const primeiroBairroDirectusSlug = bairroReferenciaDirectusSlug;
 
 
 // 3. Consulta de Todas as Categorias Locais (Níveis 1, 2 e 3)
-const todasCategorias = await api.fetchAllCategorias(); // <-- MUDANÇA AQUI
+try {
+    todasCategorias = await api.fetchAllCategorias();
+} catch (e) {
+    console.error("ERRO [index]: Falha ao buscar categorias. Renderizando listas vazias.", e);
+}
+
 
 // 4. Separação das categorias por nível (Lógica mantida)
 const countSlashes = (slug: string) => (slug.match(/\//g) || []).length;
@@ -41,7 +60,7 @@ const nv1Categorias = todasCategorias.filter(c => countSlashes(c.full_slug_nicho
 const nv2Categorias = todasCategorias.filter(c => countSlashes(c.full_slug_nicho) === 1);
 const nv3Categorias = todasCategorias.filter(c => countSlashes(c.full_slug_nicho) >= 2);
 
-// Estilos de layout mantidos (Você pode mover as funções de estilo para api.ts e usar api.gridStyle se quiser)
+// Estilos de layout mantidos
 const gridStyle = 'list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem;';
 const cardStyle = 'display: block; background:#fff; border-radius:0.75rem; border:1px solid #ddd; padding:0.75rem 1rem; height: 100%; transition: background 0.2s; cursor: pointer; text-decoration: none;';
 const sectionDividerStyle = 'border: 0; border-top: 1px solid #eee; margin: 3rem 0;';
